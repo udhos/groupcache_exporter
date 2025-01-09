@@ -70,6 +70,11 @@ func (g *Group) ServerRequests() int64 {
 	return g.group.Stats.ServerRequests.Get()
 }
 
+// CrosstalkRefusals represents refusals for additional crosstalks
+func (g *Group) CrosstalkRefusals() int64 {
+	return g.group.Stats.CrosstalkRefusals.Get()
+}
+
 // MainCacheItems represents number of items in the main cache
 func (g *Group) MainCacheItems() int64 {
 	return g.group.CacheStats(groupcache.MainCache).Items

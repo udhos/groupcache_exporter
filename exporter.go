@@ -19,12 +19,14 @@ type Exporter struct {
 	groupLocalLoads               *prometheus.Desc
 	groupLocalLoadErrs            *prometheus.Desc
 	groupServerRequests           *prometheus.Desc
-	cacheBytes                    *prometheus.Desc
-	cacheItems                    *prometheus.Desc
-	cacheGets                     *prometheus.Desc
-	cacheHits                     *prometheus.Desc
-	cacheEvictions                *prometheus.Desc
-	cacheEvictionsNonExpired      *prometheus.Desc
+	groupCrosstalkRefusals        *prometheus.Desc
+
+	cacheBytes               *prometheus.Desc
+	cacheItems               *prometheus.Desc
+	cacheGets                *prometheus.Desc
+	cacheHits                *prometheus.Desc
+	cacheEvictions           *prometheus.Desc
+	cacheEvictionsNonExpired *prometheus.Desc
 }
 
 // GroupStatistics is a plugable interface to extract metrics from a groupcache implementation.
@@ -64,6 +66,9 @@ type GroupStatistics interface {
 
 	// ServerRequests represents gets that came over the network from peers
 	ServerRequests() int64
+
+	// CrosstalkRefusals represents refusals for additional crosstalks
+	CrosstalkRefusals() int64
 
 	MainCacheItems() int64
 	MainCacheBytes() int64
@@ -149,6 +154,13 @@ func NewExporter(namespace string, labels map[string]string, groups ...GroupStat
 			[]string{"group"},
 			labels,
 		),
+		groupCrosstalkRefusals: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, subsystem, "crosstalk_refusals_total"),
+			"Count of refusals for additional crosstalks",
+			[]string{"group"},
+			labels,
+		),
+
 		cacheBytes: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, subsystem, "cache_bytes"),
 			"Gauge of current bytes in use",
@@ -200,6 +212,8 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.groupLocalLoads
 	ch <- e.groupLocalLoadErrs
 	ch <- e.groupServerRequests
+	ch <- e.groupCrosstalkRefusals
+
 	ch <- e.cacheBytes
 	ch <- e.cacheItems
 	ch <- e.cacheGets
@@ -231,6 +245,7 @@ func (e *Exporter) collectStats(ch chan<- prometheus.Metric, stats GroupStatisti
 	ch <- prometheus.MustNewConstMetric(e.groupLocalLoads, prometheus.CounterValue, float64(stats.LocalLoads()), stats.Name())
 	ch <- prometheus.MustNewConstMetric(e.groupLocalLoadErrs, prometheus.CounterValue, float64(stats.LocalLoadErrs()), stats.Name())
 	ch <- prometheus.MustNewConstMetric(e.groupServerRequests, prometheus.CounterValue, float64(stats.ServerRequests()), stats.Name())
+	ch <- prometheus.MustNewConstMetric(e.groupCrosstalkRefusals, prometheus.CounterValue, float64(stats.CrosstalkRefusals()), stats.Name())
 }
 
 func (e *Exporter) collectCacheStats(ch chan<- prometheus.Metric, stats GroupStatistics) {
