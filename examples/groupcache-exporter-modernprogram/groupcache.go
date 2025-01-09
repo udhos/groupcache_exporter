@@ -54,19 +54,28 @@ func startGroupcache() *groupcache.Group {
 	// https://talks.golang.org/2013/oscon-dl.slide#46
 	//
 	// 64 MB max per-node memory usage
-	cache := groupcache.NewGroupWithWorkspace(workspace, "files", purgeExpired, groupcacheSizeBytes, groupcache.GetterFunc(
-		func(_ /*ctx*/ context.Context, key string, dest groupcache.Sink) error {
 
-			log.Printf("getter: loading: key:%s, ttl:%v", key, ttl)
+	options := groupcache.Options{
+		Workspace:    workspace,
+		Name:         "files",
+		PurgeExpired: purgeExpired,
+		CacheBytes:   groupcacheSizeBytes,
+		Getter: groupcache.GetterFunc(
+			func(_ /*ctx*/ context.Context, key string, dest groupcache.Sink) error {
 
-			data, errFile := os.ReadFile(key)
-			if errFile != nil {
-				return errFile
-			}
+				log.Printf("getter: loading: key:%s, ttl:%v", key, ttl)
 
-			expire := time.Now().Add(ttl)
-			return dest.SetBytes(data, expire)
-		}))
+				data, errFile := os.ReadFile(key)
+				if errFile != nil {
+					return errFile
+				}
+
+				expire := time.Now().Add(ttl)
+				return dest.SetBytes(data, expire)
+			}),
+	}
+
+	cache := groupcache.NewGroupWithWorkspace(options)
 
 	return cache
 }
