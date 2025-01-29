@@ -17,8 +17,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/mailgun/groupcache/v2 v2.6.0 h1:w7+5ltoEwbrCk2LWyRRa7Ui9sRlvyBUaIqEU97kdh+0=
 github.com/mailgun/groupcache/v2 v2.6.0/go.mod h1:s509cRKQkn9+FUC42BG7A8kbTAywikZUOJtr1guhOkY=
-github.com/modernprogram/groupcache/v2 v2.6.7 h1:J0eGNV/brzJZv4hdwbeK3XJo+d1KBaPslX/71v7Kx7k=
-github.com/modernprogram/groupcache/v2 v2.6.7/go.mod h1:XlDct7lBEXDcdx+deZdoUO4JbH2S2VFAv+2fTvcgWC4=
+github.com/modernprogram/groupcache/v2 v2.6.9 h1:NXpR18435SXK0SrTFMyMUrK+6A5/jLW6a9W2QSpaKe4=
+github.com/modernprogram/groupcache/v2 v2.6.9/go.mod h1:XlDct7lBEXDcdx+deZdoUO4JbH2S2VFAv+2fTvcgWC4=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
