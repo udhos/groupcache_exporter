@@ -54,7 +54,7 @@ func main() {
 
 	for {
 		var dst []byte
-		cache.Get(context.TODO(), "/etc/passwd", groupcache.AllocatingByteSliceSink(&dst))
+		cache.Get(context.TODO(), "/etc/passwd", groupcache.AllocatingByteSliceSink(&dst), nil)
 		log.Printf("cache answer: %d bytes, sleeping %v", len(dst), interval)
 		time.Sleep(interval)
 	}
