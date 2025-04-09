@@ -34,55 +34,11 @@ type Exporter struct {
 // The user must provide a concrete implementation of this interface that knows how to
 // extract group statistics from the actual groupcache implementation.
 type GroupStatistics interface {
+	// Collect requests metrics collection from implementation
+	Collect() Stats
+
 	// Name returns the group's name
 	Name() string
-
-	// Gets represents any Get request, including from peers
-	Gets() int64
-
-	// CacheHits represents either cache was good
-	CacheHits() int64
-
-	// GetFromPeersLatencyLower represents slowest duration to request value from peers
-	GetFromPeersLatencyLower() int64
-
-	// PeerLoads represents either remote load or remote cache hit (not an error)
-	PeerLoads() int64
-
-	// PeerErrors represents a count of errors from peers
-	PeerErrors() int64
-
-	// Loads represents (gets - cacheHits)
-	Loads() int64
-
-	// LoadsDeduped represents after singleflight
-	LoadsDeduped() int64
-
-	// LocalLoads represents total good local loads
-	LocalLoads() int64
-
-	// LocalLoadErrs represents total bad local loads
-	LocalLoadErrs() int64
-
-	// ServerRequests represents gets that came over the network from peers
-	ServerRequests() int64
-
-	// CrosstalkRefusals represents refusals for additional crosstalks
-	CrosstalkRefusals() int64
-
-	MainCacheItems() int64
-	MainCacheBytes() int64
-	MainCacheGets() int64
-	MainCacheHits() int64
-	MainCacheEvictions() int64
-	MainCacheEvictionsNonExpired() int64
-
-	HotCacheItems() int64
-	HotCacheBytes() int64
-	HotCacheGets() int64
-	HotCacheHits() int64
-	HotCacheEvictions() int64
-	HotCacheEvictionsNonExpired() int64
 }
 
 // NewExporter creates Exporter.
@@ -229,37 +185,33 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-func (e *Exporter) collectFromGroup(ch chan<- prometheus.Metric, stats GroupStatistics) {
-	e.collectStats(ch, stats)
-	e.collectCacheStats(ch, stats)
+func (e *Exporter) collectFromGroup(ch chan<- prometheus.Metric, group GroupStatistics) {
+	stats := group.Collect()
+	groupName := group.Name()
+	e.collectStats(ch, stats.Group, groupName)
+	e.collectCacheStats(ch, stats.Main, groupName, "main")
+	e.collectCacheStats(ch, stats.Hot, groupName, "hot")
 }
 
-func (e *Exporter) collectStats(ch chan<- prometheus.Metric, stats GroupStatistics) {
-	ch <- prometheus.MustNewConstMetric(e.groupGets, prometheus.CounterValue, float64(stats.Gets()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupCacheHits, prometheus.CounterValue, float64(stats.CacheHits()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupGetFromPeersLatencyLower, prometheus.GaugeValue, float64(stats.GetFromPeersLatencyLower()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupPeerLoads, prometheus.CounterValue, float64(stats.PeerLoads()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupPeerErrors, prometheus.CounterValue, float64(stats.PeerErrors()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupLoads, prometheus.CounterValue, float64(stats.Loads()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupLoadsDeduped, prometheus.CounterValue, float64(stats.LoadsDeduped()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupLocalLoads, prometheus.CounterValue, float64(stats.LocalLoads()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupLocalLoadErrs, prometheus.CounterValue, float64(stats.LocalLoadErrs()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupServerRequests, prometheus.CounterValue, float64(stats.ServerRequests()), stats.Name())
-	ch <- prometheus.MustNewConstMetric(e.groupCrosstalkRefusals, prometheus.CounterValue, float64(stats.CrosstalkRefusals()), stats.Name())
+func (e *Exporter) collectStats(ch chan<- prometheus.Metric, stats GroupStats, groupName string) {
+	ch <- prometheus.MustNewConstMetric(e.groupGets, prometheus.CounterValue, float64(stats.CounterGets), groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupCacheHits, prometheus.CounterValue, float64(stats.CounterHits), groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupGetFromPeersLatencyLower, prometheus.GaugeValue, stats.GaugeGetFromPeersLatencyLower, groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupPeerLoads, prometheus.CounterValue, float64(stats.CounterPeerLoads), groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupPeerErrors, prometheus.CounterValue, float64(stats.CounterPeerErrors), groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupLoads, prometheus.CounterValue, float64(stats.CounterLoads), groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupLoadsDeduped, prometheus.CounterValue, float64(stats.CounterLoadsDeduped), groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupLocalLoads, prometheus.CounterValue, float64(stats.CounterLocalLoads), groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupLocalLoadErrs, prometheus.CounterValue, float64(stats.CounterLocalLoadsErrs), groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupServerRequests, prometheus.CounterValue, float64(stats.CounterServerRequests), groupName)
+	ch <- prometheus.MustNewConstMetric(e.groupCrosstalkRefusals, prometheus.CounterValue, float64(stats.CounterCrosstalkRefusals), groupName)
 }
 
-func (e *Exporter) collectCacheStats(ch chan<- prometheus.Metric, stats GroupStatistics) {
-	ch <- prometheus.MustNewConstMetric(e.cacheItems, prometheus.GaugeValue, float64(stats.MainCacheItems()), stats.Name(), "main")
-	ch <- prometheus.MustNewConstMetric(e.cacheBytes, prometheus.GaugeValue, float64(stats.MainCacheBytes()), stats.Name(), "main")
-	ch <- prometheus.MustNewConstMetric(e.cacheGets, prometheus.CounterValue, float64(stats.MainCacheGets()), stats.Name(), "main")
-	ch <- prometheus.MustNewConstMetric(e.cacheHits, prometheus.CounterValue, float64(stats.MainCacheHits()), stats.Name(), "main")
-	ch <- prometheus.MustNewConstMetric(e.cacheEvictions, prometheus.CounterValue, float64(stats.MainCacheEvictions()), stats.Name(), "main")
-	ch <- prometheus.MustNewConstMetric(e.cacheEvictionsNonExpired, prometheus.CounterValue, float64(stats.MainCacheEvictionsNonExpired()), stats.Name(), "main")
-
-	ch <- prometheus.MustNewConstMetric(e.cacheItems, prometheus.GaugeValue, float64(stats.HotCacheItems()), stats.Name(), "hot")
-	ch <- prometheus.MustNewConstMetric(e.cacheBytes, prometheus.GaugeValue, float64(stats.HotCacheBytes()), stats.Name(), "hot")
-	ch <- prometheus.MustNewConstMetric(e.cacheGets, prometheus.CounterValue, float64(stats.HotCacheGets()), stats.Name(), "hot")
-	ch <- prometheus.MustNewConstMetric(e.cacheHits, prometheus.CounterValue, float64(stats.HotCacheHits()), stats.Name(), "hot")
-	ch <- prometheus.MustNewConstMetric(e.cacheEvictions, prometheus.CounterValue, float64(stats.HotCacheEvictions()), stats.Name(), "hot")
-	ch <- prometheus.MustNewConstMetric(e.cacheEvictionsNonExpired, prometheus.CounterValue, float64(stats.HotCacheEvictionsNonExpired()), stats.Name(), "hot")
+func (e *Exporter) collectCacheStats(ch chan<- prometheus.Metric, stats CacheTypeStats, groupName, cacheType string) {
+	ch <- prometheus.MustNewConstMetric(e.cacheItems, prometheus.GaugeValue, float64(stats.GaugeCacheItems), groupName, cacheType)
+	ch <- prometheus.MustNewConstMetric(e.cacheBytes, prometheus.GaugeValue, float64(stats.GaugeCacheBytes), groupName, cacheType)
+	ch <- prometheus.MustNewConstMetric(e.cacheGets, prometheus.CounterValue, float64(stats.CounterCacheGets), groupName, cacheType)
+	ch <- prometheus.MustNewConstMetric(e.cacheHits, prometheus.CounterValue, float64(stats.CounterCacheHits), groupName, cacheType)
+	ch <- prometheus.MustNewConstMetric(e.cacheEvictions, prometheus.CounterValue, float64(stats.CounterCacheEvictions), groupName, cacheType)
+	ch <- prometheus.MustNewConstMetric(e.cacheEvictionsNonExpired, prometheus.CounterValue, float64(stats.CounterCacheEvictionsNonExpired), groupName, cacheType)
 }
