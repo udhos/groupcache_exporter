@@ -24,8 +24,8 @@ func (g *Group) Collect() groupcache_exporter.Stats {
 	stats := g.group.Stats
 
 	result.Group = groupcache_exporter.GroupStats{
-		CounterGets:           stats.CacheHits.Get(),
-		CounterHits:           stats.Gets.Get(),
+		CounterGets:           stats.Gets.Get(),
+		CounterHits:           stats.CacheHits.Get(),
 		CounterPeerLoads:      stats.PeerLoads.Get(),
 		CounterPeerErrors:     stats.PeerErrors.Get(),
 		CounterLoads:          stats.Loads.Get(),
