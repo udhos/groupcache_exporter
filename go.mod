@@ -1,13 +1,11 @@
 module github.com/udhos/groupcache_exporter
 
-go 1.23.8 // minimum
-
-toolchain go1.24.2 // preferred
+go 1.24.2
 
 require (
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 	github.com/mailgun/groupcache/v2 v2.6.0
-	github.com/modernprogram/groupcache/v2 v2.7.1
+	github.com/modernprogram/groupcache/v2 v2.7.2
 	github.com/prometheus/client_golang v1.22.0
 )
 
