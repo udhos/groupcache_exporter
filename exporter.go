@@ -2,6 +2,7 @@
 package groupcache_exporter
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -56,6 +57,17 @@ type Options struct {
 // NewExporter creates Exporter.
 // namespace is usually the empty string.
 func NewExporter(options Options) *Exporter {
+
+	{
+		// reject dup group name
+		m := map[string]struct{}{}
+		for _, g := range options.Groups {
+			if _, found := m[g.Name()]; found {
+				panic(fmt.Sprintf("invalid dup group name: %s", g.Name()))
+			}
+			m[g.Name()] = struct{}{}
+		}
+	}
 
 	const subsystem = "groupcache"
 
