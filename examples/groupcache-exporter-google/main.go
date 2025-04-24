@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +18,10 @@ import (
 )
 
 func main() {
+
+	var debug bool
+	flag.BoolVar(&debug, "debug", false, "enable debug")
+	flag.Parse()
 
 	appName := filepath.Base(os.Args[0])
 
@@ -36,7 +41,13 @@ func main() {
 			"app": appName,
 		}
 		namespace := ""
-		collector := groupcache_exporter.NewExporter(namespace, labels, google)
+		options := groupcache_exporter.Options{
+			Namespace: namespace,
+			Labels:    labels,
+			Debug:     debug,
+			Groups:    []groupcache_exporter.GroupStatistics{google},
+		}
+		collector := groupcache_exporter.NewExporter(options)
 
 		prometheus.MustRegister(collector)
 

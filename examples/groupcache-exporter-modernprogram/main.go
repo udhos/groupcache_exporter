@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -18,9 +19,13 @@ import (
 
 func main() {
 
+	var debug bool
+	flag.BoolVar(&debug, "debug", false, "enable debug")
+	flag.Parse()
+
 	appName := filepath.Base(os.Args[0])
 
-	cache := startGroupcache()
+	caches := startGroupcache()
 
 	//
 	// expose prometheus metrics
@@ -29,14 +34,26 @@ func main() {
 		metricsRoute := "/metrics"
 		metricsPort := ":3000"
 
-		log.Printf("starting metrics server at: %s %s", metricsPort, metricsRoute)
+		log.Printf("starting metrics server at: %s %s",
+			metricsPort, metricsRoute)
 
-		modernprogram := modernprogram.New(cache)
+		var groups []groupcache_exporter.GroupStatistics
+
+		for _, c := range caches {
+			groups = append(groups, modernprogram.New(c))
+		}
+
 		labels := map[string]string{
 			"app": appName,
 		}
 		namespace := ""
-		collector := groupcache_exporter.NewExporter(namespace, labels, modernprogram)
+		options := groupcache_exporter.Options{
+			Namespace: namespace,
+			Labels:    labels,
+			Debug:     debug,
+			Groups:    groups,
+		}
+		collector := groupcache_exporter.NewExporter(options)
 
 		prometheus.MustRegister(collector)
 
@@ -53,9 +70,13 @@ func main() {
 	const interval = 5 * time.Second
 
 	for {
-		var dst []byte
-		cache.Get(context.TODO(), "/etc/passwd", groupcache.AllocatingByteSliceSink(&dst), nil)
-		log.Printf("cache answer: %d bytes, sleeping %v", len(dst), interval)
+		for _, cache := range caches {
+			var dst []byte
+			cache.Get(context.TODO(), "/etc/passwd", groupcache.AllocatingByteSliceSink(&dst), nil)
+			log.Printf("cache %s answer: %d bytes", cache.Name(), len(dst))
+		}
+
+		log.Printf("sleeping %v", interval)
 		time.Sleep(interval)
 	}
 

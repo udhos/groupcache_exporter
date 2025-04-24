@@ -10,7 +10,7 @@ import (
 	"github.com/modernprogram/groupcache/v2"
 )
 
-func startGroupcache() *groupcache.Group {
+func startGroupcache() []*groupcache.Group {
 
 	ttl := time.Minute
 
@@ -51,31 +51,36 @@ func startGroupcache() *groupcache.Group {
 	const purgeExpired = true
 	const groupcacheSizeBytes = 1_000_000
 
-	// https://talks.golang.org/2013/oscon-dl.slide#46
-	//
-	// 64 MB max per-node memory usage
+	var caches []*groupcache.Group
 
-	options := groupcache.Options{
-		Workspace:       workspace,
-		Name:            "files",
-		PurgeExpired:    purgeExpired,
-		CacheBytesLimit: groupcacheSizeBytes,
-		Getter: groupcache.GetterFunc(
-			func(_ /*ctx*/ context.Context, key string, dest groupcache.Sink, _ *groupcache.Info) error {
+	names := []string{"files1", "files2"}
 
-				log.Printf("getter: loading: key:%s, ttl:%v", key, ttl)
+	for _, name := range names {
 
-				data, errFile := os.ReadFile(key)
-				if errFile != nil {
-					return errFile
-				}
+		options := groupcache.Options{
+			Workspace:       workspace,
+			Name:            name,
+			PurgeExpired:    purgeExpired,
+			CacheBytesLimit: groupcacheSizeBytes,
+			Getter: groupcache.GetterFunc(
+				func(_ /*ctx*/ context.Context, key string, dest groupcache.Sink, _ *groupcache.Info) error {
 
-				expire := time.Now().Add(ttl)
-				return dest.SetBytes(data, expire)
-			}),
+					log.Printf("getter: loading: key:%s, ttl:%v", key, ttl)
+
+					data, errFile := os.ReadFile(key)
+					if errFile != nil {
+						return errFile
+					}
+
+					expire := time.Now().Add(ttl)
+					return dest.SetBytes(data, expire)
+				}),
+		}
+
+		cache := groupcache.NewGroupWithWorkspace(options)
+
+		caches = append(caches, cache)
 	}
 
-	cache := groupcache.NewGroupWithWorkspace(options)
-
-	return cache
+	return caches
 }
