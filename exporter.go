@@ -204,6 +204,14 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 func (e *Exporter) collectFromGroup(ch chan<- prometheus.Metric, group GroupStatistics) {
 	stats := group.Collect()
 	groupName := group.Name()
+
+	if e.debug {
+		slog.Info("collectFromGroup",
+			"group", groupName,
+			"stats", stats,
+		)
+	}
+
 	e.collectStats(ch, stats.Group, groupName)
 	e.collectCacheStats(ch, stats.Main, groupName, "main")
 	e.collectCacheStats(ch, stats.Hot, groupName, "hot")
