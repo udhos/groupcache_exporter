@@ -36,16 +36,15 @@ func main() {
 
 		log.Printf("starting metrics server at: %s %s", metricsPort, metricsRoute)
 
-		mailgun := mailgun.New(cache)
 		labels := map[string]string{
 			"app": appName,
 		}
 		namespace := ""
 		options := groupcache_exporter.Options{
-			Namespace: namespace,
-			Labels:    labels,
-			Debug:     debug,
-			Groups:    []groupcache_exporter.GroupStatistics{mailgun},
+			Namespace:  namespace,
+			Labels:     labels,
+			Debug:      debug,
+			ListGroups: func() []groupcache_exporter.GroupStatistics { return mailgun.ListGroups() },
 		}
 		collector := groupcache_exporter.NewExporter(options)
 

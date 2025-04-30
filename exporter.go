@@ -2,7 +2,6 @@
 package groupcache_exporter
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -10,9 +9,7 @@ import (
 
 // Exporter implements interface prometheus.Collector to extract metrics from groupcache.
 type Exporter struct {
-	debug bool
-
-	groups []GroupStatistics
+	options Options
 
 	groupGets                     *prometheus.Desc
 	groupCacheHits                *prometheus.Desc
@@ -48,26 +45,15 @@ type GroupStatistics interface {
 
 // Options define parameters for Exporter.
 type Options struct {
-	Namespace string
-	Labels    map[string]string
-	Debug     bool
-	Groups    []GroupStatistics
+	Namespace  string
+	Labels     map[string]string
+	Debug      bool
+	ListGroups func() []GroupStatistics
 }
 
 // NewExporter creates Exporter.
 // namespace is usually the empty string.
 func NewExporter(options Options) *Exporter {
-
-	{
-		// reject dup group name
-		m := map[string]struct{}{}
-		for _, g := range options.Groups {
-			if _, found := m[g.Name()]; found {
-				panic(fmt.Sprintf("invalid dup group name: %s", g.Name()))
-			}
-			m[g.Name()] = struct{}{}
-		}
-	}
 
 	const subsystem = "groupcache"
 
@@ -75,8 +61,7 @@ func NewExporter(options Options) *Exporter {
 	labels := options.Labels
 
 	return &Exporter{
-		debug:  options.Debug,
-		groups: options.Groups,
+		options: options,
 
 		groupGets: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, subsystem, "gets_total"),
@@ -208,7 +193,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect is called by the Prometheus registry when collecting metrics.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
-	for _, group := range e.groups {
+	for _, group := range e.options.ListGroups() {
 		e.collectFromGroup(ch, group)
 	}
 }
@@ -217,7 +202,7 @@ func (e *Exporter) collectFromGroup(ch chan<- prometheus.Metric, group GroupStat
 	stats := group.Collect()
 	groupName := group.Name()
 
-	if e.debug {
+	if e.options.Debug {
 		slog.Info("collectFromGroup",
 			"group", groupName,
 			"stats", stats,
@@ -259,24 +244,26 @@ func metricPerType(debug bool, name string, desc *prometheus.Desc, valueType pro
 }
 
 func (e *Exporter) collectStats(ch chan<- prometheus.Metric, stats GroupStats, groupName string) {
-	ch <- metric(e.debug, "gets", e.groupGets, prometheus.CounterValue, float64(stats.CounterGets), groupName)
-	ch <- metric(e.debug, "hits", e.groupCacheHits, prometheus.CounterValue, float64(stats.CounterHits), groupName)
-	ch <- metric(e.debug, "get_from_peers_latency_slowest_milliseconds", e.groupGetFromPeersLatencyLower, prometheus.GaugeValue, stats.GaugeGetFromPeersLatencyLower, groupName)
-	ch <- metric(e.debug, "peer_loads", e.groupPeerLoads, prometheus.CounterValue, float64(stats.CounterPeerLoads), groupName)
-	ch <- metric(e.debug, "peer_errors", e.groupPeerErrors, prometheus.CounterValue, float64(stats.CounterPeerErrors), groupName)
-	ch <- metric(e.debug, "loads", e.groupLoads, prometheus.CounterValue, float64(stats.CounterLoads), groupName)
-	ch <- metric(e.debug, "loads_deduped", e.groupLoadsDeduped, prometheus.CounterValue, float64(stats.CounterLoadsDeduped), groupName)
-	ch <- metric(e.debug, "local_load", e.groupLocalLoads, prometheus.CounterValue, float64(stats.CounterLocalLoads), groupName)
-	ch <- metric(e.debug, "local_load_errs", e.groupLocalLoadErrs, prometheus.CounterValue, float64(stats.CounterLocalLoadsErrs), groupName)
-	ch <- metric(e.debug, "server_requests", e.groupServerRequests, prometheus.CounterValue, float64(stats.CounterServerRequests), groupName)
-	ch <- metric(e.debug, "crosstalk_refusals", e.groupCrosstalkRefusals, prometheus.CounterValue, float64(stats.CounterCrosstalkRefusals), groupName)
+	debug := e.options.Debug
+	ch <- metric(debug, "gets", e.groupGets, prometheus.CounterValue, float64(stats.CounterGets), groupName)
+	ch <- metric(debug, "hits", e.groupCacheHits, prometheus.CounterValue, float64(stats.CounterHits), groupName)
+	ch <- metric(debug, "get_from_peers_latency_slowest_milliseconds", e.groupGetFromPeersLatencyLower, prometheus.GaugeValue, stats.GaugeGetFromPeersLatencyLower, groupName)
+	ch <- metric(debug, "peer_loads", e.groupPeerLoads, prometheus.CounterValue, float64(stats.CounterPeerLoads), groupName)
+	ch <- metric(debug, "peer_errors", e.groupPeerErrors, prometheus.CounterValue, float64(stats.CounterPeerErrors), groupName)
+	ch <- metric(debug, "loads", e.groupLoads, prometheus.CounterValue, float64(stats.CounterLoads), groupName)
+	ch <- metric(debug, "loads_deduped", e.groupLoadsDeduped, prometheus.CounterValue, float64(stats.CounterLoadsDeduped), groupName)
+	ch <- metric(debug, "local_load", e.groupLocalLoads, prometheus.CounterValue, float64(stats.CounterLocalLoads), groupName)
+	ch <- metric(debug, "local_load_errs", e.groupLocalLoadErrs, prometheus.CounterValue, float64(stats.CounterLocalLoadsErrs), groupName)
+	ch <- metric(debug, "server_requests", e.groupServerRequests, prometheus.CounterValue, float64(stats.CounterServerRequests), groupName)
+	ch <- metric(debug, "crosstalk_refusals", e.groupCrosstalkRefusals, prometheus.CounterValue, float64(stats.CounterCrosstalkRefusals), groupName)
 }
 
 func (e *Exporter) collectCacheStats(ch chan<- prometheus.Metric, stats CacheTypeStats, groupName, cacheType string) {
-	ch <- metricPerType(e.debug, "cache_items", e.cacheItems, prometheus.GaugeValue, float64(stats.GaugeCacheItems), groupName, cacheType)
-	ch <- metricPerType(e.debug, "cache_bytes", e.cacheBytes, prometheus.GaugeValue, float64(stats.GaugeCacheBytes), groupName, cacheType)
-	ch <- metricPerType(e.debug, "cache_gets", e.cacheGets, prometheus.CounterValue, float64(stats.CounterCacheGets), groupName, cacheType)
-	ch <- metricPerType(e.debug, "cache_hits", e.cacheHits, prometheus.CounterValue, float64(stats.CounterCacheHits), groupName, cacheType)
-	ch <- metricPerType(e.debug, "cache_evictions", e.cacheEvictions, prometheus.CounterValue, float64(stats.CounterCacheEvictions), groupName, cacheType)
-	ch <- metricPerType(e.debug, "cache_evictions_nonexpired", e.cacheEvictionsNonExpired, prometheus.CounterValue, float64(stats.CounterCacheEvictionsNonExpired), groupName, cacheType)
+	debug := e.options.Debug
+	ch <- metricPerType(debug, "cache_items", e.cacheItems, prometheus.GaugeValue, float64(stats.GaugeCacheItems), groupName, cacheType)
+	ch <- metricPerType(debug, "cache_bytes", e.cacheBytes, prometheus.GaugeValue, float64(stats.GaugeCacheBytes), groupName, cacheType)
+	ch <- metricPerType(debug, "cache_gets", e.cacheGets, prometheus.CounterValue, float64(stats.CounterCacheGets), groupName, cacheType)
+	ch <- metricPerType(debug, "cache_hits", e.cacheHits, prometheus.CounterValue, float64(stats.CounterCacheHits), groupName, cacheType)
+	ch <- metricPerType(debug, "cache_evictions", e.cacheEvictions, prometheus.CounterValue, float64(stats.CounterCacheEvictions), groupName, cacheType)
+	ch <- metricPerType(debug, "cache_evictions_nonexpired", e.cacheEvictionsNonExpired, prometheus.CounterValue, float64(stats.CounterCacheEvictionsNonExpired), groupName, cacheType)
 }

@@ -6,18 +6,23 @@ import (
 	"github.com/udhos/groupcache_exporter"
 )
 
-// Group implements interface GroupStatistics to extract metrics from groupcache group.
-type Group struct {
+// ListGroups issues current list of exporter groups for groupcache groups.
+func ListGroups(ws *groupcache.Workspace) []groupcache_exporter.GroupStatistics {
+	groups := groupcache.GetGroups(ws)
+	var exportGroups []groupcache_exporter.GroupStatistics
+	for _, g := range groups {
+		exportGroups = append(exportGroups, &exportGroup{group: g})
+	}
+	return exportGroups
+}
+
+// exportGroup implements interface GroupStatistics to extract metrics from groupcache group.
+type exportGroup struct {
 	group *groupcache.Group
 }
 
-// New creates a new Group.
-func New(group *groupcache.Group) *Group {
-	return &Group{group: group}
-}
-
 // Collect requests metrics collection from implementation
-func (g *Group) Collect() groupcache_exporter.Stats {
+func (g *exportGroup) Collect() groupcache_exporter.Stats {
 
 	var result groupcache_exporter.Stats
 
@@ -55,6 +60,6 @@ func getCacheStats(cacheStats groupcache.CacheStats) groupcache_exporter.CacheTy
 }
 
 // Name returns the group's name
-func (g *Group) Name() string {
+func (g *exportGroup) Name() string {
 	return g.group.Name()
 }
