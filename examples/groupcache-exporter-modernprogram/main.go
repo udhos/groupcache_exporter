@@ -25,7 +25,9 @@ func main() {
 
 	appName := filepath.Base(os.Args[0])
 
-	caches := startGroupcache()
+	workspace := groupcache.NewWorkspace()
+
+	caches := startGroupcache(workspace)
 
 	//
 	// expose prometheus metrics
@@ -37,21 +39,15 @@ func main() {
 		log.Printf("starting metrics server at: %s %s",
 			metricsPort, metricsRoute)
 
-		var groups []groupcache_exporter.GroupStatistics
-
-		for _, c := range caches {
-			groups = append(groups, modernprogram.New(c))
-		}
-
 		labels := map[string]string{
 			"app": appName,
 		}
 		namespace := ""
 		options := groupcache_exporter.Options{
-			Namespace: namespace,
-			Labels:    labels,
-			Debug:     debug,
-			Groups:    groups,
+			Namespace:  namespace,
+			Labels:     labels,
+			Debug:      debug,
+			ListGroups: func() []groupcache_exporter.GroupStatistics { return modernprogram.ListGroups(workspace) },
 		}
 		collector := groupcache_exporter.NewExporter(options)
 

@@ -36,16 +36,15 @@ func main() {
 
 		log.Printf("starting metrics server at: %s %s", metricsPort, metricsRoute)
 
-		google := google.New(cache)
 		labels := map[string]string{
 			"app": appName,
 		}
 		namespace := ""
 		options := groupcache_exporter.Options{
-			Namespace: namespace,
-			Labels:    labels,
-			Debug:     debug,
-			Groups:    []groupcache_exporter.GroupStatistics{google},
+			Namespace:  namespace,
+			Labels:     labels,
+			Debug:      debug,
+			ListGroups: func() []groupcache_exporter.GroupStatistics { return google.ListGroups([]*groupcache.Group{cache}) },
 		}
 		collector := groupcache_exporter.NewExporter(options)
 
