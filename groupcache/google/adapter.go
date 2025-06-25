@@ -26,22 +26,22 @@ func (g *exportGroup) Collect() groupcache_exporter.Stats {
 
 	var result groupcache_exporter.Stats
 
-	stats := g.group.Stats
+	group := g.group
 
 	result.Group = groupcache_exporter.GroupStats{
-		CounterGets:           stats.Gets.Get(),
-		CounterHits:           stats.CacheHits.Get(),
-		CounterPeerLoads:      stats.PeerLoads.Get(),
-		CounterPeerErrors:     stats.PeerErrors.Get(),
-		CounterLoads:          stats.Loads.Get(),
-		CounterLoadsDeduped:   stats.LoadsDeduped.Get(),
-		CounterLocalLoads:     stats.LocalLoads.Get(),
-		CounterLocalLoadsErrs: stats.LocalLoadErrs.Get(),
-		CounterServerRequests: stats.ServerRequests.Get(),
+		CounterGets:           group.Stats.Gets.Get(),
+		CounterHits:           group.Stats.CacheHits.Get(),
+		CounterPeerLoads:      group.Stats.PeerLoads.Get(),
+		CounterPeerErrors:     group.Stats.PeerErrors.Get(),
+		CounterLoads:          group.Stats.Loads.Get(),
+		CounterLoadsDeduped:   group.Stats.LoadsDeduped.Get(),
+		CounterLocalLoads:     group.Stats.LocalLoads.Get(),
+		CounterLocalLoadsErrs: group.Stats.LocalLoadErrs.Get(),
+		CounterServerRequests: group.Stats.ServerRequests.Get(),
 	}
 
-	result.Main = getCacheStats(g.group.CacheStats(groupcache.MainCache))
-	result.Hot = getCacheStats(g.group.CacheStats(groupcache.HotCache))
+	result.Main = getCacheStats(group.CacheStats(groupcache.MainCache))
+	result.Hot = getCacheStats(group.CacheStats(groupcache.HotCache))
 
 	return result
 }
