@@ -23,15 +23,19 @@ func TestRaceGoogle(_ *testing.T) {
 
 	const n = 10000
 
+	wg.Add(2 * n)
+
 	for range n {
 		go func() {
 			eg.group.Stats.Gets.Add(1)
+			wg.Done()
 		}()
 	}
 
 	for range n {
 		go func() {
 			eg.Collect()
+			wg.Done()
 		}()
 	}
 
