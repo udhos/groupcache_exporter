@@ -29,17 +29,17 @@ func (g *exportGroup) Collect() groupcache_exporter.Stats {
 	group := g.group
 
 	result.Group = groupcache_exporter.GroupStats{
-		CounterGets:                   group.Stats.Gets.Get(),
-		CounterHits:                   group.Stats.CacheHits.Get(),
-		GaugeGetFromPeersLatencyLower: float64(group.Stats.GetFromPeersLatencyLower.Get()),
-		CounterPeerLoads:              group.Stats.PeerLoads.Get(),
-		CounterPeerErrors:             group.Stats.PeerErrors.Get(),
-		CounterLoads:                  group.Stats.Loads.Get(),
-		CounterLoadsDeduped:           group.Stats.LoadsDeduped.Get(),
-		CounterLocalLoads:             group.Stats.LocalLoads.Get(),
-		CounterLocalLoadsErrs:         group.Stats.LocalLoadErrs.Get(),
-		CounterServerRequests:         group.Stats.ServerRequests.Get(),
-		CounterCrosstalkRefusals:      group.Stats.CrosstalkRefusals.Get(),
+		CounterGets:                   group.Stats.Gets.Load(),
+		CounterHits:                   group.Stats.CacheHits.Load(),
+		GaugeGetFromPeersLatencyLower: float64(group.Stats.GetFromPeersLatencyLower.Load()),
+		CounterPeerLoads:              group.Stats.PeerLoads.Load(),
+		CounterPeerErrors:             group.Stats.PeerErrors.Load(),
+		CounterLoads:                  group.Stats.Loads.Load(),
+		CounterLoadsDeduped:           group.Stats.LoadsDeduped.Load(),
+		CounterLocalLoads:             group.Stats.LocalLoads.Load(),
+		CounterLocalLoadsErrs:         group.Stats.LocalLoadErrs.Load(),
+		CounterServerRequests:         group.Stats.ServerRequests.Load(),
+		CounterCrosstalkRefusals:      group.Stats.CrosstalkRefusals.Load(),
 	}
 
 	result.Main = getCacheStats(group.CacheStats(groupcache.MainCache))
