@@ -1,11 +1,13 @@
 module github.com/udhos/groupcache_exporter
 
-go 1.24.5
+go 1.24.6
+
+toolchain go1.25.0
 
 require (
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 	github.com/mailgun/groupcache/v2 v2.6.0
-	github.com/modernprogram/groupcache/v2 v2.7.8
+	github.com/modernprogram/groupcache/v2 v2.7.9
 	github.com/prometheus/client_golang v1.23.0
 )
 
@@ -19,6 +21,6 @@ require (
 	github.com/prometheus/procfs v0.17.0 // indirect
 	github.com/segmentio/fasthash v1.0.3 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	google.golang.org/protobuf v1.36.8 // indirect
 )
